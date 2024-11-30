@@ -6,38 +6,17 @@
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 	</head>
 	<body>
-		<script id="fragmentShader" type="x-shader/x-fragment">
-			uniform float time;
-			uniform vec2 resolution;
-			varying vec2 fragUV;
-			varying vec3 fragNormal;
-			void main() {
-			  vec3 lightPos=vec3(0.,2.,0.);
-			  lightPos=lightPos/length(lightPos);
-			}
-		</script>
-
-		<script id="vertexShader" type="x-shader/x-vertex">
-			uniform float time;
-			uniform vec2 resolution;
-			varying vec2 fragUV;
-			varying vec3 fragNormal;
-            void main() {
-			  fragUV=uv;
-			  vec4 newNormal=modelMatrix*vec4(normal,0.0);
-			  fragNormal=newNormal.xyz;
-			  gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4( position, 1.0 );
-			}
-		</script>
 		<script type="module">
 
 			import * as THREE from './files/three.js';
 			import { OrbitControls } from './files/OrbitControls.js';
+			import { PointLight } from './src/lights/PointLight.js';
+			import { AmbientLight } from './src/lights/AmbientLight.js';
 
 			let camera, scene, renderer;
-			let meshs;
+			let mesh;
+			let mesh2;
 			let mesh3;
-			let mesh4;
 			let t=0;
 
 		
@@ -47,47 +26,60 @@
 				camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.1, 100 );
 				camera.position.z = 2;
 
-
+				
 				scene = new THREE.Scene();
 
-				const texture = new THREE.MeshBasicMaterial({color:0xff00ff});
-				texture.colorSpace = THREE.SRGBColorSpace;
-
-				const geometry = new THREE.SphereGeometry( 20, 50, 50 );
-				const geometry2 = new THREE.SphereGeometry(3, 50, 50 ); 
-				const material2 = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
-				const moon = new THREE.SphereGeometry(2,25,25);
-				const moon_material = new THREE.MeshBasicMaterial({color: 0xff0000})
-				
-
-				let uniforms1 = {
-                            time:       { value: 1.0 },
-                            resolution: { value: new THREE.Vector2() }
-                        };
-
-				var material = new THREE.ShaderMaterial( {
-					uniforms: uniforms1,
-					vertexShader: document.getElementById( 'vertexShader' ).textContent,
-					fragmentShader: document.getElementById( 'fragmentShader' ).textContent
-					} );
-
-				meshs=new Array();
-
-				let mesh = new THREE.Mesh( geometry, material2 );
-				mesh.position.set(0,0,0);
-			    scene.add( mesh );
-				meshs.push(mesh);
-
-				mesh3 = new THREE.Mesh(geometry2,texture);
-				scene.add(mesh3);
-				mesh4 = new THREE.Mesh(moon,moon_material);
-				scene.add(mesh4);
-
-				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer = new THREE.WebGLRenderer({ antialias: true });
+				renderer.shadowMap.enabled = true;
+				renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				renderer.setAnimationLoop( animate );
+				
 				document.body.appendChild( renderer.domElement );
+			
+				const light = new THREE.PointLight(0xFFFFFF,2000);
+				light.position.set( 40, 0, 0 );
+				light.castShadow = true;
+				scene.add(light);
+				//const helper = new THREE.CameraHelper( light.shadow.camera );
+				//scene.add( helper );
+				const background_lighting = new THREE.AmbientLight(0x44aaaa,0.5);
+				scene.add(background_lighting);
+
+				const planet = new THREE.SphereGeometry( 20, 50, 50 );
+				const planet_material_1 = new THREE.MeshPhongMaterial({color:0x550055});
+
+				const moon_1 = new THREE.SphereGeometry(3, 50, 50 ); 
+				const moon_material_1 = new THREE.MeshPhongMaterial( { color: 0x005500 } );
+
+				const moon_2 = new THREE.SphereGeometry(2,25,25);
+				const moon_material_2 = new THREE.MeshPhongMaterial({color: 0x550000})
+
+				mesh = new THREE.Mesh( planet, planet_material_1 );
+				mesh.position.set(0,0,0);
+				mesh.castShadow = true;
+				mesh.recieveShadow = true;
+			    scene.add(mesh);
+				mesh2 = new THREE.Mesh(moon_1,moon_material_1);
+				mesh2.castShadow = true;
+				mesh2.recieveShadow = true;
+				scene.add(mesh2);
+				mesh3 = new THREE.Mesh(moon_2,moon_material_2);
+				mesh3.castShadow = true;
+				mesh3.recieveShadow = true;
+				scene.add(mesh3);
+
+				scene.traverse( function( child ) 
+				{ 
+
+					if ( child.isMesh ) {
+
+						child.castShadow = true;
+						child.receiveShadow = true;
+
+					}
+				} );
 
 				const controls = new OrbitControls( camera, renderer.domElement );
 				camera.position.set( 0, 20, 60 );
@@ -104,20 +96,21 @@
 
 				renderer.setSize( window.innerWidth, window.innerHeight );
 			}
+
 			let angle = 0;
 			const radius = 23;
 			const speed = 0.0001;
 			function animate() {
 				requestAnimationFrame(animate);
-				meshs.forEach((mesh)=>{  // anonymous function using fat arrow
-					mesh.rotation.x += 0.004;
-				});
+
 				angle += speed;
-				mesh3.position.x = radius * Math.cos(angle);
-				mesh3.position.z = radius * Math.sin(angle);
-				mesh3.position.y = radius * Math.cos(angle);
-				mesh4.position.x = (radius+4) * (Math.cos(angle/2));
-				mesh4.position.z = (radius+4) * (Math.sin(angle/2));
+				mesh.recieveShadow = true;
+				mesh3.castShadow = true;
+				mesh2.position.x = radius * Math.cos(angle);
+				mesh2.position.z = radius * Math.sin(angle);
+				mesh2.position.y = radius * Math.cos(angle);
+				mesh3.position.x = (radius+4) * (Math.cos(angle/2));
+				mesh3.position.z = (radius+4) * (Math.sin(angle/2));
 
 				renderer.render( scene, camera );
 			}
