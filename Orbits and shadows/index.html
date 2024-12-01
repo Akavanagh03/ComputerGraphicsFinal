@@ -18,12 +18,14 @@
 			let mesh2;
 			let mesh3;
 			let t=0;
+			let star_distance = 100;
+			const light = new THREE.PointLight(0xFFFFDD,4000);
 
 		
 
 			function init() {
 
-				camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.1, 100 );
+				camera = new THREE.PerspectiveCamera( 90, window.innerWidth / window.innerHeight, 0.1, 200);
 				camera.position.z = 2;
 
 				
@@ -33,41 +35,44 @@
 				renderer.shadowMap.enabled = true;
 				renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 				renderer.setPixelRatio( window.devicePixelRatio );
-				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.setSize(window.innerWidth, window.innerHeight);
 				renderer.setAnimationLoop( animate );
 				
 				document.body.appendChild( renderer.domElement );
+
+				// textures from https://www.solarsystemscope.com/textures/
+				const loader = new THREE.TextureLoader();
+				const planet_texture = loader.load('./images/2k_mars.jpg');
+				const moon_1_texture = loader.load('./images/2k_mercury.jpg');
+				const moon_2_texture = loader.load('./images/2k_venus.jpg');
+				//const background_texture = loader.load('./images/2k_space.jpg');
+				//scene.background = background_texture;
 			
-				const light = new THREE.PointLight(0xFFFFFF,2000);
-				light.position.set( 40, 0, 0 );
+				light.position.set(star_distance, 0, star_distance);
 				light.castShadow = true;
 				scene.add(light);
 				//const helper = new THREE.CameraHelper( light.shadow.camera );
 				//scene.add( helper );
-				const background_lighting = new THREE.AmbientLight(0x44aaaa,0.5);
+				const background_lighting = new THREE.AmbientLight(0x113333,0.2);
 				scene.add(background_lighting);
 
 				const planet = new THREE.SphereGeometry( 20, 50, 50 );
-				const planet_material_1 = new THREE.MeshPhongMaterial({color:0x550055});
+				const planet_material_1 = new THREE.MeshPhongMaterial({map: planet_texture});
 
 				const moon_1 = new THREE.SphereGeometry(3, 50, 50 ); 
-				const moon_material_1 = new THREE.MeshPhongMaterial( { color: 0x005500 } );
+				const moon_material_1 = new THREE.MeshPhongMaterial({ map: moon_1_texture });
 
 				const moon_2 = new THREE.SphereGeometry(2,25,25);
-				const moon_material_2 = new THREE.MeshPhongMaterial({color: 0x550000})
+				const moon_material_2 = new THREE.MeshPhongMaterial({map: moon_2_texture});
 
 				mesh = new THREE.Mesh( planet, planet_material_1 );
 				mesh.position.set(0,0,0);
-				mesh.castShadow = true;
-				mesh.recieveShadow = true;
 			    scene.add(mesh);
 				mesh2 = new THREE.Mesh(moon_1,moon_material_1);
-				mesh2.castShadow = true;
-				mesh2.recieveShadow = true;
+				mesh2.position.set(30,30,30);
 				scene.add(mesh2);
 				mesh3 = new THREE.Mesh(moon_2,moon_material_2);
-				mesh3.castShadow = true;
-				mesh3.recieveShadow = true;
+				mesh3.position.set(30,0,30);
 				scene.add(mesh3);
 
 				scene.traverse( function( child ) 
@@ -98,25 +103,25 @@
 			}
 
 			let angle = 0;
-			const radius = 23;
+			const radius = 30;
 			const speed = 0.0001;
 			function animate() {
-				requestAnimationFrame(animate);
+				setTimeout( function() {
 
+					requestAnimationFrame( animate );
+			
+				}, 1000 / 60 );
 				angle += speed;
-				mesh.recieveShadow = true;
-				mesh3.castShadow = true;
+				light.position.x = star_distance * Math.cos(angle/4);
+				light.position.z = star_distance * Math.sin(angle/4);
 				mesh2.position.x = radius * Math.cos(angle);
 				mesh2.position.z = radius * Math.sin(angle);
 				mesh2.position.y = radius * Math.cos(angle);
-				mesh3.position.x = (radius+4) * (Math.cos(angle/2));
-				mesh3.position.z = (radius+4) * (Math.sin(angle/2));
+				mesh3.position.x = (2*radius) * (Math.cos(angle/2));
+				mesh3.position.z = (2*radius) * (Math.sin(angle/2));
 
-				renderer.render( scene, camera );
+				renderer.render(scene, camera);
 			}
-			
-
 		</script>
-
 	</body>
 </html>
